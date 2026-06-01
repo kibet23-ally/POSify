@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "./lib/supabase";
 
 /* =========================
-   SUPABASE CLIENT (CONNECTED)
-========================= */
-const supabase = createClient(
-  "https://gdthbnguukmppdcschbm.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkdGhibmd1dWttcHBkY3NjaGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNTg2NjUsImV4cCI6MjA5NTgzNDY2NX0.hbJ8taIU8f55XkgW4mrf-0g6fCKvz6kSFm063BKpEH8"
-);
-
-/* =========================
-   SIDEBAR (SAAS STRUCTURE)
+   SIDEBAR
 ========================= */
 const Sidebar = ({ view, setView, user }) => {
   const menu = [
@@ -21,37 +13,26 @@ const Sidebar = ({ view, setView, user }) => {
     { id: "orders", label: "Orders" },
     { id: "branches", label: "Branches" },
     { id: "employees", label: "Employees" },
-    { id: "reports", label: "Reports" }, // replaced Insights Center
+    { id: "reports", label: "Reports" }, // SaaS analytics module
     { id: "licensing", label: "Licensing" },
-    { id: "settings", label: "Settings" },
+    { id: "settings", label: "Settings" }
   ];
 
   return (
-    <div
-      style={{
-        width: "240px",
-        height: "100vh",
-        background: "#161627",
-        color: "#fff",
-        padding: "20px",
-      }}
-    >
+    <div style={styles.sidebar}>
       <h2>🛍️ POSify Pro</h2>
 
       <p style={{ fontSize: "12px", opacity: 0.6 }}>
         {user?.role} • SaaS Mode
       </p>
 
-      {menu.map((item) => (
+      {menu.map(item => (
         <div
           key={item.id}
           onClick={() => setView(item.id)}
           style={{
-            padding: "10px",
-            margin: "6px 0",
-            cursor: "pointer",
-            borderRadius: "8px",
-            background: view === item.id ? "#6C63FF" : "transparent",
+            ...styles.menuItem,
+            background: view === item.id ? "#6C63FF" : "transparent"
           }}
         >
           {item.label}
@@ -64,18 +45,16 @@ const Sidebar = ({ view, setView, user }) => {
 /* =========================
    DASHBOARD
 ========================= */
-const Dashboard = ({ user }) => {
-  return (
-    <div>
-      <h2>Dashboard</h2>
-      <p>Welcome to POSify Pro SaaS System</p>
-      <p>User Role: {user?.role}</p>
-    </div>
-  );
-};
+const Dashboard = ({ user }) => (
+  <div>
+    <h2>Dashboard</h2>
+    <p>Welcome to POSify Pro SaaS System</p>
+    <p>User Role: {user?.role}</p>
+  </div>
+);
 
 /* =========================
-   POINT OF SALE
+   POS
 ========================= */
 const POS = ({ user }) => {
   const createSale = async () => {
@@ -85,15 +64,12 @@ const POS = ({ user }) => {
       {
         organization_id: user.organization_id,
         branch_id: user.branch_id || null,
-        total: amount,
-      },
+        total: amount
+      }
     ]);
 
-    if (error) {
-      alert(error.message);
-    } else {
-      alert("Sale recorded successfully");
-    }
+    if (error) alert(error.message);
+    else alert("Sale recorded successfully");
   };
 
   return (
@@ -111,7 +87,7 @@ const Reports = ({ user }) => {
   const [sales, setSales] = useState([]);
 
   useEffect(() => {
-    const loadSales = async () => {
+    const load = async () => {
       const { data } = await supabase
         .from("sales")
         .select("*")
@@ -120,10 +96,10 @@ const Reports = ({ user }) => {
       setSales(data || []);
     };
 
-    loadSales();
+    load();
   }, [user]);
 
-  const total = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+  const total = sales.reduce((a, b) => a + (b.total || 0), 0);
 
   return (
     <div>
@@ -135,36 +111,30 @@ const Reports = ({ user }) => {
 };
 
 /* =========================
-   LOGIN (SAAS + LICENSE CHECK)
+   LOGIN + LICENSE CHECK
 ========================= */
 const Login = ({ setUser }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async () => {
-    /* AUTH */
+  const login = async () => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password,
+      password
     });
 
     if (error) return alert(error.message);
 
     const authUser = data.user;
 
-    /* PROFILE */
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", authUser.id)
       .single();
 
-    if (!profile) {
-      alert("No profile found");
-      return;
-    }
+    if (!profile) return alert("Profile not found");
 
-    /* LICENSE CHECK (ONE-TIME PAYMENT MODEL) */
     const { data: license } = await supabase
       .from("licenses")
       .select("*")
@@ -180,42 +150,26 @@ const Login = ({ setUser }) => {
   };
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#0D0D1A",
-        color: "#fff",
-      }}
-    >
-      <div
-        style={{
-          padding: "40px",
-          background: "#161627",
-          borderRadius: "16px",
-          width: "350px",
-        }}
-      >
+    <div style={styles.login}>
+      <div style={styles.loginBox}>
         <h2>POSify Pro Login</h2>
 
         <input
           placeholder="Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ width: "100%", padding: "10px", margin: "10px 0" }}
+          onChange={e => setEmail(e.target.value)}
+          style={styles.input}
         />
 
         <input
-          placeholder="Password"
           type="password"
+          placeholder="Password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ width: "100%", padding: "10px", margin: "10px 0" }}
+          onChange={e => setPassword(e.target.value)}
+          style={styles.input}
         />
 
-        <button onClick={handleLogin} style={{ width: "100%", padding: "10px" }}>
+        <button onClick={login} style={styles.button}>
           Login
         </button>
       </div>
@@ -224,7 +178,7 @@ const Login = ({ setUser }) => {
 };
 
 /* =========================
-   MAIN APP (SAAS CORE)
+   MAIN APP
 ========================= */
 export default function App() {
   const [user, setUser] = useState(null);
@@ -246,9 +200,63 @@ export default function App() {
   if (!user) return <Login setUser={setUser} />;
 
   return (
-    <div style={{ display: "flex" }}>
+    <div style={styles.app}>
       <Sidebar view={view} setView={setView} user={user} />
-      <div style={{ flex: 1, padding: "20px" }}>{renderView()}</div>
+      <div style={styles.content}>{renderView()}</div>
     </div>
   );
 }
+
+/* =========================
+   STYLES
+========================= */
+const styles = {
+  app: { display: "flex", height: "100vh" },
+
+  sidebar: {
+    width: "240px",
+    background: "#161627",
+    color: "#fff",
+    padding: "20px"
+  },
+
+  menuItem: {
+    padding: "10px",
+    margin: "6px 0",
+    cursor: "pointer",
+    borderRadius: "8px"
+  },
+
+  content: {
+    flex: 1,
+    padding: "20px"
+  },
+
+  login: {
+    height: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "#0D0D1A"
+  },
+
+  loginBox: {
+    background: "#161627",
+    padding: "40px",
+    borderRadius: "12px",
+    width: "320px",
+    color: "#fff"
+  },
+
+  input: {
+    width: "100%",
+    padding: "10px",
+    margin: "10px 0"
+  },
+
+  button: {
+    width: "100%",
+    padding: "10px",
+    cursor: "pointer"
+  }
+};
